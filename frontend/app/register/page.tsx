@@ -1,27 +1,36 @@
 "use client";
+
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 
-export default function Register() {
-  const router = useRouter();
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    password: "",
-    role: "student",
-  });
+export default function RegisterPage() {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [role, setRole] = useState("student");
+  const [msg, setMsg] = useState("");
+  const [error, setError] = useState("");
 
-  async function handleRegister() {
+  const register = async () => {
     try {
-      await api("/register", "POST", form);
-      alert("Registered successfully");
-      router.push("/");
+      setError("");
+      setMsg("");
+
+      await api("/register", "POST", {
+        name,
+        email,
+        password,
+        role,
+      });
+
+      setMsg("Registration successful. Please login.");
+      setTimeout(() => {
+        window.location.href = "/login";
+      }, 1500);
     } catch (err: any) {
-    // 👇 backend से आने वाला message
-    alert(err.message || "User already exists");
-  }
-  }
+      setError(err?.detail || "Registration failed");
+    }
+  };
 
   return (
     <div className="card">
@@ -30,44 +39,44 @@ export default function Register() {
       <input
         className="input"
         placeholder="Name"
-        value={form.name}
-        autoComplete="off"
-        onChange={(e) => setForm({ ...form, name: e.target.value })}
+        value={name}
+        onChange={(e) => setName(e.target.value)}
       />
 
       <input
         className="input"
-        type="email"
         placeholder="Email"
-        value={form.email}
-        autoComplete="off"
-        onChange={(e) => setForm({ ...form, email: e.target.value })}
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
       />
 
       <input
         className="input"
         type="password"
         placeholder="Password"
-        value={form.password}
-        autoComplete="new-password"
-        onChange={(e) => setForm({ ...form, password: e.target.value })}
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
       />
 
       <select
         className="select"
-        value={form.role}
-        onChange={(e) => setForm({ ...form, role: e.target.value })}
+        value={role}
+        onChange={(e) => setRole(e.target.value)}
       >
         <option value="student">Student</option>
         <option value="admin">Admin</option>
       </select>
 
-      <button className="btn" onClick={handleRegister}>
+      {error && <p style={{ color: "#f87171" }}>{error}</p>}
+      {msg && <p style={{ color: "#34d399" }}>{msg}</p>}
+
+      <button className="btn" onClick={register}>
         Register
       </button>
 
       <div className="link">
-        Already have an account? <a href="/">Login</a>
+        Already have an account?{" "}
+        <a href="/login">Login</a>
       </div>
     </div>
   );

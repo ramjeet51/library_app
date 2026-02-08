@@ -6,6 +6,21 @@ import { api } from "@/lib/api";
 type View = "add" | "books" | "issued";
 
 export default function AdminPage() {
+  // ======================
+  // 🔐 AUTH GUARD (MUST BE INSIDE COMPONENT)
+  // ======================
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const role = localStorage.getItem("role");
+
+    if (!token || role !== "admin") {
+      window.location.href = "/login";
+    }
+  }, []);
+
+  // ======================
+  // STATE
+  // ======================
   const [view, setView] = useState<View>("books");
 
   const [title, setTitle] = useState("");
@@ -66,7 +81,7 @@ export default function AdminPage() {
   };
 
   // ======================
-  // REDUCE BOOK QTY
+  // REDUCE BOOK QUANTITY
   // ======================
   const reduceBook = async (bookId: number) => {
     const qtyStr = prompt("Enter quantity to reduce:");
@@ -99,7 +114,7 @@ export default function AdminPage() {
   // ======================
   return (
     <div className="card admin layout page-animate">
-      {/* ================= SIDEBAR ================= */}
+      {/* ========== SIDEBAR ========== */}
       <div className="sidebar">
         <button
           className={view === "add" ? "active" : ""}
@@ -130,7 +145,7 @@ export default function AdminPage() {
         </button>
       </div>
 
-      {/* ================= CONTENT ================= */}
+      {/* ========== CONTENT ========== */}
       <div className="content">
         {/* ---------- ADD BOOK ---------- */}
         {view === "add" && (
@@ -172,7 +187,7 @@ export default function AdminPage() {
 
             {books.length === 0 && <p>No books found</p>}
 
-            {/* 🔽 SCROLLABLE BOOK LIST */}
+            {/* 🔽 SCROLLABLE LIST */}
             <div className="book-list">
               {books.map((b) => (
                 <div key={b.id} className="list-row">

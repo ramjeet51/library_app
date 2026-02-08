@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 
 const FREE_DAYS = 7;
-
 type View = "books" | "history";
 
 export default function StudentPage() {
@@ -17,7 +16,23 @@ export default function StudentPage() {
   const [search, setSearch] = useState("");
   const [error, setError] = useState("");
 
-  const USER_ID = 2; // JWT later
+  // ✅ CORRECT USER ID (from login)
+  const USER_ID =
+    typeof window !== "undefined"
+      ? Number(localStorage.getItem("user_id"))
+      : null;
+
+  // ======================
+  // 🔐 AUTH GUARD (FIXED)
+  // ======================
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const role = localStorage.getItem("role");
+
+    if (!token || role !== "student") {
+      window.location.href = "/login";
+    }
+  }, []);
 
   // ======================
   // LOAD DATA
@@ -28,11 +43,13 @@ export default function StudentPage() {
   };
 
   const loadIssued = async () => {
+    if (!USER_ID) return;
     const data = await api(`/student/issued?user_id=${USER_ID}`);
     setIssued(data);
   };
 
   const loadHistory = async () => {
+    if (!USER_ID) return;
     const data = await api(`/student/history?user_id=${USER_ID}`);
     setHistory(data);
   };
@@ -128,20 +145,17 @@ export default function StudentPage() {
           <>
             <h2>All Books</h2>
 
-            {/* SUMMARY CARD */}
+            {/* SUMMARY */}
             <div className="summary-card">
               <div>📘 <b>Books Taken:</b> {booksTaken}</div>
-
               <div className={totalFine > 0 ? "fine-red" : ""}>
                 💰 <b>Total Fine:</b> ₹{totalFine}
               </div>
-
               <div className={overdueDays > 0 ? "fine-red" : ""}>
                 ⏳ <b>Overdue Days:</b> {overdueDays}
               </div>
             </div>
 
-            {/* SEARCH */}
             <input
               className="input"
               placeholder="Search book..."
@@ -151,7 +165,6 @@ export default function StudentPage() {
 
             {error && <div className="limit-warning">{error}</div>}
 
-            {/* BOOK LIST */}
             <div className="book-list">
               {books.map((b) => {
                 const issuedBook = issued.find(
@@ -161,12 +174,6 @@ export default function StudentPage() {
                 const isOverdue =
                   issuedBook && issuedBook.days > FREE_DAYS;
 
-                const dueText = issuedBook
-                  ? issuedBook.days > FREE_DAYS
-                    ? `Overdue by ${issuedBook.days - FREE_DAYS} days`
-                    : `Due in ${FREE_DAYS - issuedBook.days} days`
-                  : "";
-
                 return (
                   <div
                     key={b.id}
@@ -175,15 +182,7 @@ export default function StudentPage() {
                     }`}
                   >
                     <div>
-                      <div>
-                        {b.title} (Available: {b.total})
-                      </div>
-
-                      {issuedBook && (
-                        <small className={isOverdue ? "fine-red" : ""}>
-                          ⏳ {dueText}
-                        </small>
-                      )}
+                      {b.title} (Available: {b.total})
                     </div>
 
                     {issuedBook ? (
@@ -222,13 +221,12 @@ export default function StudentPage() {
                   <div>
                     <b>{h.book_name}</b>
                     <div>
-                      Issued on: {new Date(h.issued_at).toLocaleDateString()}
+                      Issued on:{" "}
+                      {new Date(h.issued_at).toLocaleDateString()}
                     </div>
                   </div>
 
-                  <div
-                    className={h.fine > 0 ? "fine-red" : ""}
-                  >
+                  <div className={h.fine > 0 ? "fine-red" : ""}>
                     Fine: ₹{h.fine}
                   </div>
                 </div>

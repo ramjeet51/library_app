@@ -3,11 +3,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from datetime import datetime
-from sqlalchemy import or_
 
 from database import get_db, engine
 from models import Base, User, Book, Issue
 from service import LibraryService
+
+# =========================
+# CONSTANTS
+# =========================
+MAX_BOOKS = 2
+FREE_DAYS = 7
+FINE_PER_DAY = 5
 
 # =========================
 # DB INIT
@@ -41,8 +47,10 @@ def register(data: dict, db: Session = Depends(get_db)):
 
 @app.post("/login")
 def login(data: dict, db: Session = Depends(get_db)):
-    token, role = LibraryService(db).login(data)
-    return {"token": token, "role": role}
+    try:
+        return LibraryService(db).login(data)
+    except ValueError as e:
+        raise HTTPException(status_code=401, detail=str(e))
 
 # =========================
 # ADMIN
@@ -58,12 +66,6 @@ def admin_books(db: Session = Depends(get_db)):
     return db.query(Book).all()
 
 
-@app.post("/admin/issue")
-def admin_issue(data: dict, db: Session = Depends(get_db)):
-    LibraryService(db).issue_book(data["user_id"], data["book_id"])
-    return {"msg": "Book issued"}
-
-
 @app.get("/admin/issued")
 def admin_issued(db: Session = Depends(get_db)):
     query = text("""
@@ -75,9 +77,9 @@ def admin_issued(db: Session = Depends(get_db)):
         FROM issues
         JOIN users ON users.id = issues.user_id
         JOIN books ON books.id = issues.book_id
+        WHERE issues.returned_at IS NULL
     """)
     return db.execute(query).mappings().all()
-
 
 
 @app.get("/admin/history")
@@ -89,8 +91,8 @@ def admin_history(db: Session = Depends(get_db)):
             issues.issued_at,
             issues.returned_at,
             DATEDIFF(
-              COALESCE(issues.returned_at, CURDATE()),
-              issues.issued_at
+                IFNULL(issues.returned_at, CURDATE()),
+                issues.issued_at
             ) AS days
         FROM issues
         JOIN users ON users.id = issues.user_id
@@ -100,12 +102,59 @@ def admin_history(db: Session = Depends(get_db)):
     return db.execute(query).mappings().all()
 
 
+@app.delete("/admin/book/{book_id}")
+def delete_book(book_id: int, db: Session = Depends(get_db)):
+    book = db.query(Book).filter(Book.id == book_id).first()
+
+    if not book:
+        raise HTTPException(status_code=404, detail="Book not found")
+
+    active_issues = db.query(Issue).filter(
+        Issue.book_id == book_id,
+        Issue.returned_at == None
+    ).count()
+
+    if active_issues > 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot delete book. It is currently issued."
+        )
+
+    db.delete(book)
+    db.commit()
+    return {"msg": "Book deleted successfully"}
+
+
+@app.patch("/admin/book/{book_id}/reduce")
+def reduce_book_quantity(book_id: int, qty: int, db: Session = Depends(get_db)):
+    book = db.query(Book).filter(Book.id == book_id).first()
+
+    if not book:
+        raise HTTPException(status_code=404, detail="Book not found")
+
+    if qty <= 0:
+        raise HTTPException(status_code=400, detail="Quantity must be > 0")
+
+    if qty > book.total:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Only {book.total} copies available"
+        )
+
+    book.total -= qty
+    db.commit()
+
+    return {"msg": f"{qty} copies removed", "remaining": book.total}
+
 # =========================
 # STUDENT
 # =========================
-@app.get("/student/books")
-def student_books(db: Session = Depends(get_db)):
-    return db.query(Book).all()
+@app.get("/books/search")
+def search_books(q: str = "", db: Session = Depends(get_db)):
+    if not q:
+        return db.query(Book).all()
+
+    return db.query(Book).filter(Book.title.ilike(f"%{q}%")).all()
 
 
 @app.get("/student/issued")
@@ -113,21 +162,31 @@ def student_issued(user_id: int, db: Session = Depends(get_db)):
     query = text("""
         SELECT 
             books.id AS book_id,
-            books.title AS book_title,
-            issues.issued_at,
+            books.title AS book_name,
             DATEDIFF(CURDATE(), issues.issued_at) AS days
         FROM issues
         JOIN books ON books.id = issues.book_id
         WHERE issues.user_id = :uid
+          AND issues.returned_at IS NULL
     """)
-    return db.execute(query, {"uid": user_id}).mappings().all()
+
+    rows = db.execute(query, {"uid": user_id}).mappings().all()
+
+    result = []
+    for r in rows:
+        fine = max(0, (r["days"] - FREE_DAYS) * FINE_PER_DAY)
+        result.append({
+            "book_id": r["book_id"],
+            "book_name": r["book_name"],
+            "days": r["days"],
+            "fine": fine
+        })
+
+    return result
 
 
-# =========================
-# STUDENT ISSUE HISTORY
-# =========================
 @app.get("/student/history")
-def student_issue_history(user_id: int, db: Session = Depends(get_db)):
+def student_history(user_id: int, db: Session = Depends(get_db)):
     query = text("""
         SELECT 
             books.title AS book_name,
@@ -145,38 +204,22 @@ def student_issue_history(user_id: int, db: Session = Depends(get_db)):
 
     rows = db.execute(query, {"uid": user_id}).mappings().all()
 
-    FREE_DAYS = 7
-    FINE_PER_DAY = 5
-
-    result = []
+    history = []
     for r in rows:
-        fine = 0
-        if r["days"] > FREE_DAYS:
-            fine = (r["days"] - FREE_DAYS) * FINE_PER_DAY
+        fine = max(0, (r["days"] - FREE_DAYS) * FINE_PER_DAY)
+        history.append({**r, "fine": fine})
 
-        result.append({
-            "book_name": r["book_name"],
-            "issued_at": r["issued_at"],
-            "returned_at": r["returned_at"],
-            "days": r["days"],
-            "fine": fine
-        })
+    return history
 
-    return result
-
-
-
-
-MAX_BOOKS = 2
 
 @app.post("/student/issue/{book_id}")
 def student_issue(book_id: int, user_id: int, db: Session = Depends(get_db)):
-    # count already issued books
-    issued_count = db.query(Issue).filter(
-        Issue.user_id == user_id
+    active_count = db.query(Issue).filter(
+        Issue.user_id == user_id,
+        Issue.returned_at == None
     ).count()
 
-    if issued_count >= MAX_BOOKS:
+    if active_count >= MAX_BOOKS:
         raise HTTPException(
             status_code=400,
             detail="Book limit reached (Max 2 books allowed)"
@@ -188,7 +231,8 @@ def student_issue(book_id: int, user_id: int, db: Session = Depends(get_db)):
 
     already = db.query(Issue).filter(
         Issue.user_id == user_id,
-        Issue.book_id == book_id
+        Issue.book_id == book_id,
+        Issue.returned_at == None
     ).first()
 
     if already:
@@ -199,40 +243,8 @@ def student_issue(book_id: int, user_id: int, db: Session = Depends(get_db)):
 
     db.add(issue)
     db.commit()
-    return {"msg": "Book issued"}
 
-
-
-FREE_DAYS = 7
-FINE_PER_DAY = 5
-
-@app.get("/student/issued")
-def student_issued(user_id: int, db: Session = Depends(get_db)):
-    query = text("""
-        SELECT 
-            books.id AS book_id,
-            books.title AS book_name,
-            DATEDIFF(CURDATE(), issues.issued_at) AS days
-        FROM issues
-        JOIN books ON books.id = issues.book_id
-        WHERE issues.user_id = :uid
-    """)
-    rows = db.execute(query, {"uid": user_id}).mappings().all()
-
-    result = []
-    for r in rows:
-        fine = 0
-        if r["days"] > FREE_DAYS:
-            fine = (r["days"] - FREE_DAYS) * FINE_PER_DAY
-
-        result.append({
-            "book_id": r["book_id"],
-            "book_name": r["book_name"],
-            "days": r["days"],
-            "fine": fine
-        })
-
-    return result
+    return {"msg": "Book issued successfully"}
 
 
 @app.post("/student/return/{book_id}")
@@ -244,88 +256,15 @@ def student_return(book_id: int, user_id: int, db: Session = Depends(get_db)):
     ).first()
 
     if not issue:
-        raise HTTPException(status_code=400, detail="Book not issued")
+        raise HTTPException(
+            status_code=400,
+            detail="Book already returned or not issued"
+        )
 
-    issue.returned_at = datetime.utcnow()   # 👈 IMPORTANT
+    issue.returned_at = datetime.utcnow()
 
     book = db.query(Book).filter(Book.id == book_id).first()
     book.total += 1
 
     db.commit()
-    return {"msg": "Book returned"}
-
-
-#for book serch logic
-@app.get("/books/search")
-def search_books(q: str = "", db: Session = Depends(get_db)):
-    if not q:
-        return db.query(Book).all()
-
-    return db.query(Book).filter(
-        Book.title.ilike(f"%{q}%")
-    ).all()
-
-#delete book logic
-
-@app.delete("/admin/book/{book_id}")
-def delete_book(book_id: int, db=Depends(get_db)):
-    book = db.query(Book).filter(Book.id == book_id).first()
-
-    if not book:
-        raise HTTPException(status_code=404, detail="Book not found")
-
-    # check if book is issued
-    issued_count = db.query(Issue).filter(Issue.book_id == book_id).count()
-    if issued_count > 0:
-        raise HTTPException(
-            status_code=400,
-            detail="Cannot delete book. It is currently issued."
-        )
-
-    db.delete(book)
-    db.commit()
-
-    return {"msg": "Book deleted successfully"}
-
-
-# =========================
-# ADMIN - REDUCE BOOK QUANTITY
-# =========================
-@app.patch("/admin/book/{book_id}/reduce")
-def reduce_book_quantity(
-    book_id: int,
-    qty: int,
-    db: Session = Depends(get_db)
-):
-    book = db.query(Book).filter(Book.id == book_id).first()
-
-    if not book:
-        raise HTTPException(status_code=404, detail="Book not found")
-
-    if qty <= 0:
-        raise HTTPException(
-            status_code=400,
-            detail="Quantity must be greater than 0"
-        )
-
-    # how many copies are currently issued
-    issued_count = db.query(Issue).filter(
-        Issue.book_id == book_id
-    ).count()
-
-    available = book.total - issued_count
-
-    if qty > available:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Only {available} copies can be removed"
-        )
-
-    book.total -= qty
-    db.commit()
-
-    return {
-        "msg": f"{qty} copies removed successfully",
-        "remaining": book.total
-    }
-
+    return {"msg": "Book returned successfully"}
