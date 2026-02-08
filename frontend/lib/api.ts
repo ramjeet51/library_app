@@ -7,9 +7,17 @@ export async function api(path: string, method = "GET", body?: any) {
 
   const data = await res.json();
 
+  
+
   if (!res.ok) {
     throw new Error(data.detail || "Something went wrong");
   }
 
   return data;
 }
+
+export const logout = () => {
+  localStorage.removeItem("token");
+  localStorage.removeItem("role");
+  window.location.href = "/login";
+};

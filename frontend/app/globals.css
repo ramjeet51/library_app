@@ -171,3 +171,171 @@ select:-webkit-autofill {
   background: #111827;
   border-radius: 0 12px 12px 0;
 }
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-animate {
+  animation: fadeIn 0.5s ease-out;
+}
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.list-row {
+  animation: slideUp 0.35s ease;
+  background: #020617;
+  padding: 14px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.btn {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(59, 130, 246, 0.4);@keyframes shake {
+  0% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  50% { transform: translateX(4px); }
+  75% { transform: translateX(-4px); }
+  100% { transform: translateX(0); }
+}
+
+.limit-warning {
+  color: #ef4444;
+  margin-bottom: 12px;
+  animation: shake 0.35s ease;
+}
+
+}
+
+.btn:active {
+  transform: scale(0.96);
+}
+@keyframes pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.summary-box {
+  animation: pop 0.4s ease;
+}
+/* Scrollable book list (ADMIN & STUDENT) */
+.book-list {
+  max-height: 420px;     /* height after ~3 books */
+  overflow-y: auto;
+  padding-right: 10px;
+}
+
+/* Smooth scrollbar */
+.book-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.book-list::-webkit-scrollbar-thumb {
+  background: #374151;
+  border-radius: 6px;
+}
+
+.book-list::-webkit-scrollbar-thumb:hover {
+  background: #4b5563;
+}
+.book-list {
+  max-height: 420px;   /* shows ~3–4 books */
+  overflow-y: auto;
+  padding-right: 10px;
+}
+
+.book-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.book-list::-webkit-scrollbar-thumb {
+  background: #374151;
+  border-radius: 6px;
+}
+
+.book-list::-webkit-scrollbar-thumb:hover {
+  background: #4b5563;
+}
+.summary-card {
+  display: flex;
+  justify-content: space-between;
+  background: #020617;
+  padding: 14px;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.fine-red {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.overdue-border {
+  border: 1px solid #ef4444;
+}
+
+.book-list {
+  max-height: 420px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+.summary-card {
+  display: flex;
+  gap: 24px;
+  background: #020617;
+  padding: 14px;
+  border-radius: 10px;
+  margin-bottom: 16px;
+}
+
+.fine-red {
+  color: #f87171;
+  font-weight: 600;
+}
+
+.book-list {
+  max-height: 360px;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.overdue-border {
+  border-left: 4px solid #f87171;
+}
+
+.limit-warning {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin: 10px 0;
+}
