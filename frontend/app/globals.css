@@ -1,0 +1,173 @@
+/* Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+/* Body */
+body {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+/* Card container */
+.card {
+  width: 100%;
+  max-width: 1100px;          /* ⬅️ was 400px */
+  background: #111827;
+  padding: 32px;              /* थोड़ा ज्यादा space */
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+}
+
+
+/* Headings */
+.card h2 {
+  text-align: center;
+  margin-bottom: 22px;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+/* Input fields */
+.input {
+  width: 100%;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  border-radius: 8px;
+  border: 1px solid #374151;
+  background: #020617;
+  color: #fff;
+  font-size: 14px;
+  transition: border 0.2s, box-shadow 0.2s;
+}
+
+/* Fix browser autofill (VERY IMPORTANT) */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #020617 inset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Focus state */
+.input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 1px #3b82f6;
+}
+
+/* Button */
+.btn {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  background: #3b82f6;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.btn:hover {
+  background: #2563eb;
+}
+
+/* Links */
+.link {
+  margin-top: 16px;
+  text-align: center;
+  font-size: 14px;
+}
+
+.link a {
+  color: #60a5fa;
+  text-decoration: none;
+}
+
+.link a:hover {
+  text-decoration: underline;
+}
+/* Select dropdown */
+.select {
+  width: 100%;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  border-radius: 8px;
+  border: 1px solid #374151;
+  background: #020617;
+  color: #fff;
+  font-size: 14px;
+}
+
+/* Fix autofill for select as well */
+select:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px #020617 inset !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+.admin-title {
+  text-align: center;
+  font-size: 26px;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+.admin-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.admin-form small {
+  color: #9ca3af;
+  font-size: 13px;
+}
+.layout {
+  display: flex;
+  width: 900px;
+  min-height: 450px;
+}
+
+.sidebar {
+  width: 220px;
+  background: #020617;
+  border-radius: 12px 0 0 12px;
+  padding: 20px;
+}
+
+.sidebar button {
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  background: #1f2937;
+  color: #fff;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.sidebar button.active {
+  background: #3b82f6;
+}
+
+.sidebar button:hover {
+  background: #374151;
+}
+
+.content {
+  flex: 1;
+  padding: 24px;
+  background: #111827;
+  border-radius: 0 12px 12px 0;
+}
