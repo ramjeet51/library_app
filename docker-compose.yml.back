@@ -4,20 +4,23 @@ services:
 
   backend:
     build: ./backend
+    container_name: library_backend
     env_file:
       - ./backend/.env
     ports:
-      - "8001-8002:8000"   # for scaling
+      - "8000:8000"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: always
 
   frontend:
     build: ./frontend
-    environment:
-      - NEXT_PUBLIC_API_URL=/api
+    container_name: library_frontend
     ports:
-      - "3001-3002:3000"   # for scaling
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000    
     depends_on:
       - backend
     restart: always
+
